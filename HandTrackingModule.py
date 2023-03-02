@@ -50,7 +50,6 @@ class handDetector():
 
 def main():
     pTime = 0  # previous time
-    cTime = 0  # current time
 
     cap = cv2.VideoCapture(0)  # Choosing the cam to use
     detector = handDetector()
@@ -67,7 +66,7 @@ def main():
         fps = 1 / (cTime - pTime)
         pTime = cTime
 
-        # Addinf fps label to the picture
+        # Adding fps label to the picture
         cv2.putText(img, "fps: " + str(int(fps)), (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 3)
 
         cv2.imshow("Image", img)  # rum a webcam
