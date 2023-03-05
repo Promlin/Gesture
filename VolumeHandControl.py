@@ -12,7 +12,6 @@ wCam, hCam = 640, 480
 ############################
 
 
-
 cap = cv2.VideoCapture(0)
 cap.set(3, wCam)
 cap.set(4, hCam)
@@ -41,9 +40,21 @@ volPer = 0
 
 while True:
     success, img = cap.read()
+
+    # Finding hand
     img = detector.findHands(img)
     lmList = detector.findPosition(img, draw=False)  #Getting list of hand positions
     if len(lmList) != 0:
+
+        # Filter based on size
+
+        # Find distance between iindex and Thum
+
+        # Convert volume
+        # Reduce resolution to make it smoother
+        #Check fingers up
+
+
         # print(lmList[4], lmList[8]) # Position of the special point
 
         x1, y1 = lmList[4][1], lmList[4][2]
