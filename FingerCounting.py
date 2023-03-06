@@ -29,7 +29,7 @@ while True:
 
     success, img = cap.read()
     img = detector.findHands(img)
-    lmList = detector.findPosition(img, draw=False)
+    lmList, _ = detector.findPosition(img, draw=False)
 
     if len(lmList) != 0:
         fingers = []
@@ -49,7 +49,7 @@ while True:
 
         # print(fingers)
         totalFingers = fingers.count(1)
-        print(totalFingers)
+        # print(totalFingers)
 
         h, w, c = overlayList[totalFingers - 1].shape
         img[10:h+10, 10:w+10] = overlayList[totalFingers - 1]

@@ -17,7 +17,7 @@ cap.set(3, wCam)
 cap.set(4, hCam)
 pTime = 0
 
-detector = htm.handDetector(detectionCon=0.7)
+detector = htm.handDetector(detectionCon=0.7, maxHands=1)
 
 # region ToChange
 # Место подключение библиотеки для управления звуком на пк,
@@ -30,12 +30,15 @@ volume = cast(interface, POINTER(IAudioEndpointVolume))
 # volume.GetMute()
 # volume.GetMasterVolumeLevel()
 # print(volume.GetVolumeRange()) # -65.25 - 0.0 (min - max)
-volRange = volume.GetVolumeRange() # Получение диапазона максимального и минимального значений
+volRange = volume.GetVolumeRange()  # Получение диапазона максимального и минимального значений
 minVol = volRange[0]  # Определение минимума
 maxVol = volRange[1]  # Определение максимума
 vol = 0
 volBar = 400
 volPer = 0
+area = 0
+colorVol = (255, 0, 0)
+
 # endregion
 
 while True:
@@ -43,56 +46,59 @@ while True:
 
     # Finding hand
     img = detector.findHands(img)
-    lmList = detector.findPosition(img, draw=False)  #Getting list of hand positions
+    lmList, bbox = detector.findPosition(img, draw=True)  # Getting list of hand positions
     if len(lmList) != 0:
 
         # Filter based on size
+        area = (bbox[2] - bbox[0]) * (bbox[2] - bbox[1]) // 100
+        print(area)
+        if 250 < area < 1000:
+            print("yes")
+            # Find distance between index and Thum
+            length, img, lineInfo = detector.findDistance(4, 8, img)
+            # print(length)
 
-        # Find distance between iindex and Thum
+            # Convert volume
+            # region ToChange2
+            # Hand range min = 50 - max = 250
+            # Volume ranhge - 65 - 0
+            # Надо преобразовать так чтобы минимум звука стал минимум жеста и так же с макс
+            # По большому счету здесь просто надо подставить минимальную и максимальную скорость на место 50 и 250
+            volBar = np.interp(length, [50, 250], [400, 150])
+            volPer = np.interp(length, [50, 250], [0, 100])
+            # endregion
 
-        # Convert volume
-        # Reduce resolution to make it smoother
-        #Check fingers up
+            # Reduce resolution to make it smoother
+            smoothness = 5
+            volPer = smoothness * round(volPer / smoothness)
 
+            # Check fingers up
+            fingers = detector.fingersUp()
 
-        # print(lmList[4], lmList[8]) # Position of the special point
+            # if pinky is down set volume
+            if not fingers[4]:
+                # region ToChange
+                # Заменить установку громкости на установление значения скорости
+                volume.SetMasterVolumeLevelScalar(volPer / 100, None)  # Afford to send percentage volume
+                # endregion
 
-        x1, y1 = lmList[4][1], lmList[4][2]
-        x2, y2 = lmList[8][1], lmList[8][2]
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2  # finding the center between fingers
+                # Change color after setting value
+                cv2.circle(img, (lineInfo[4], lineInfo[5]), 12, (0, 255, 0), cv2.FILLED)
+                colorVol = (0, 255, 0)
+            else:
+                colorVol = (255, 0, 0)
 
-        cv2.circle(img, (x1, y1), 12, (255, 0, 255), cv2.FILLED) # drawing the circle around the point
-        cv2.circle(img, (x2, y2), 12, (255, 0, 255), cv2.FILLED)
-        cv2.circle(img, (cx, cy), 12, (255, 0, 255), cv2.FILLED)
-
-        cv2.line(img, (x1, y1), (x2, y2), (255, 0, 255), 3) # drawing the line between fingers
-
-        length = math.hypot(x2 - x1, y2 - y1)
-        # print(length)
-
-        # region ToChange2
-        # Hand range min = 50 - max = 300
-        # Volume ranhge - 65 - 0
-        # Надо преобразовать так чтобы минимум звука стал минимум жеста и так же с макс
-        # По большому счету здесь просто надо подставить минимальную и максимальную скорость на место 50 и 300
-        vol = np.interp(length, [50, 300], [minVol, maxVol])
-        volBar = np.interp(length, [50, 300], [400, 150])
-        volPer = np.interp(length, [50, 300], [0, 100])
-        print(vol)
-        volume.SetMasterVolumeLevel(vol, None)
-        # endregion
-
-        # when the distance between the fingers is less than 50 then the center point becomes green
-        if length < 50:
-            cv2.circle(img, (cx, cy), 12, (0, 255, 0), cv2.FILLED)
-
+    # Drawings
     # Bar to show changing of value
     cv2.rectangle(img, (50, 150), (85, 400), (0, 255, 0), 3)
     cv2.rectangle(img, (50, int(volBar)), (85, 400), (0, 255, 0), cv2.FILLED)
     cv2.putText(img, f'{int(volPer)} %', (40, 450), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 3)
+    cVol = int(volume.GetMasterVolumeLevelScalar() * 100)
+    cv2.putText(img, "Vol Set: " + str(cVol), (400, 40), cv2.FONT_HERSHEY_PLAIN, 2, colorVol, 3)
 
+    # Frame rate
     cTime = time.time()
-    fps = 1/(cTime - pTime)
+    fps = 1 / (cTime - pTime)
     pTime = cTime
 
     # Addinf fps label to the picture

@@ -38,7 +38,7 @@ while True:
 
     # Find hand landmarks
     img = detector.findHands(img)
-    lmList = detector.findPosition(img, draw=False)
+    lmList, _ = detector.findPosition(img, draw=False)
 
     if len(lmList) != 0:
         # print(lmList)
